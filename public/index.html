@@ -959,6 +959,18 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
       const apiKey = localStorage.getItem('gemini_api_key');
       if (!apiKey) throw new Error('API Key no configurada.');
 
+      // 1. Detección de Duplicados en Tiempo Real
+      const normalizedRawText = rawText.trim().toLowerCase();
+      const isDuplicate = appData.some(c => c.texto_crudo.trim().toLowerCase() === normalizedRawText);
+      
+      if (isDuplicate) {
+        console.warn(`⚠️ [Duplicado] Se omitió un registro duplicado en ${fileName}.`);
+        if (!isBatch) {
+          showNotification(`Caso duplicado omitido para evitar cobros de API redundantes`, 'amber');
+        }
+        return 'DUPLICATE';
+      }
+
       if (!isBatch) {
         showIngestOverlay(`Auditando caso...`, `Enviando texto a Gemini para clasificación semántica...`);
       }
@@ -1008,9 +1020,28 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
         appData.unshift(record);
         renderDashboard(appData);
 
+        // Guardar caso físicamente en disco local (Dev Server Write-Back API)
+        try {
+          const saveResponse = await fetch('/api/save-case', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(record)
+          });
+          if (saveResponse.ok) {
+            console.log('💾 [Backend] Caso persistido físicamente en resultados-finales.json.');
+          } else {
+            console.warn('⚠️ [Backend] No se pudo persistir el caso en disco (servidor estático o error de API).');
+          }
+        } catch (err) {
+          console.warn('⚠️ [Offline] Ejecutando en modo in-memory. No se pudo conectar al servidor local para persistencia:', err.message);
+        }
+
         if (!isBatch) {
           showNotification('Caso auditado e ingresado exitosamente', 'emerald');
         }
+        return 'SUCCESS';
       } catch (err) {
         console.error('Error procesando caso:', err);
         if (!isBatch) {
@@ -1367,6 +1398,25 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
               document.getElementById('cors-banner').classList.add('hidden');
               renderDashboard(importedData);
               showNotification('Base de datos importada con éxito', 'emerald');
+
+              // Guardar base de datos entera en disco local (Dev Server Write-Back API)
+              fetch('/api/save-database', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(importedData)
+              })
+              .then(res => {
+                if (res.ok) {
+                  console.log('💾 [Backend] Base de datos guardada en disco físicamente.');
+                } else {
+                  console.warn('⚠️ [Backend] No se pudo persistir la base de datos en disco.');
+                }
+              })
+              .catch(err => {
+                console.warn('⚠️ [Offline] Ejecutando en memoria. No se pudo sincronizar la base de datos importada al disco:', err.message);
+              });
             } else {
               alert('El archivo JSON debe contener un array estructurado de registros.');
             }
@@ -1437,11 +1487,53 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
               return;
             }
 
+            // --- 1. VALIDACIÓN ESTRUCTURAL DE COLUMNAS ---
+            const firstRow = rows[0];
+            const columns = Object.keys(firstRow);
+            
+            if (columns.length === 0) {
+              alert('El archivo Excel no contiene columnas o encabezados de datos válidos.');
+              return;
+            }
+
+            // Lista de palabras clave habituales en planillas de cumplimiento o incidentes
+            const complianceKeywords = [
+              'cliente', 'incidente', 'detalle', 'comentario', 'descripcion', 
+              'motivo', 'asunto', 'texto', 'cuerpo', 'caso', 'severidad', 
+              'client', 'incident', 'detail', 'description', 'subject', 'comment'
+            ];
+
+            // Comprobar si al menos una columna coincide con palabras clave
+            const isComplianceTemplate = columns.some(col => 
+              complianceKeywords.some(kw => col.toLowerCase().includes(kw))
+            );
+
+            if (!isComplianceTemplate) {
+              const proceed = confirm(
+                `⚠️ ALERTA DE FORMATO: La planilla Excel no parece tener las columnas estándar de incidentes o cumplimiento (como "Cliente", "Detalle", "Descripción", etc.).\n\n` +
+                `Columnas detectadas: [${columns.join(', ')}]\n\n` +
+                `¿Deseas auditar y clasificar esta planilla de todas formas con la IA?`
+              );
+              if (!proceed) {
+                return; // Cancelar de forma segura
+              }
+            }
+
             showIngestOverlay(`Ingiriendo Excel...`, `Se detectaron ${rows.length} filas. Auditando cada registro con Gemini de forma secuencial...`);
 
             let processedCount = 0;
+            let duplicateCount = 0;
+            let emptyCount = 0;
+
             for (let i = 0; i < rows.length; i++) {
               const row = rows[i];
+              
+              // Omitir filas que vengan vacías para evitar consultas inútiles a la API
+              if (!row || Object.keys(row).length === 0) {
+                emptyCount++;
+                continue;
+              }
+
               const formattedRow = Object.entries(row)
                 .map(([column, value]) => {
                   const cleanValue = value !== null && value !== undefined ? String(value).trim() : '';
@@ -1451,15 +1543,29 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
 
               try {
                 showIngestOverlay(`Ingiriendo Excel (${i + 1}/${rows.length})...`, `Procesando fila de: "${row.Cliente || 'Cliente'}..."`);
-                await processRawCaseClientSide(fileName, formattedRow, 'fila_excel', true);
-                processedCount++;
+                const result = await processRawCaseClientSide(fileName, formattedRow, 'fila_excel', true);
+                if (result === 'SUCCESS') {
+                  processedCount++;
+                } else if (result === 'DUPLICATE') {
+                  duplicateCount++;
+                }
               } catch (rowErr) {
                 console.error(`Fallo en fila ${i + 1}:`, rowErr);
               }
             }
 
             hideIngestOverlay();
-            showNotification(`Excel completado: ${processedCount} filas unificadas y auditadas`, 'emerald');
+
+            // Construir notificación interactiva premium
+            let notificationText = `Excel procesado: ${processedCount} registros auditados.`;
+            if (duplicateCount > 0) {
+              notificationText += ` Se omitieron ${duplicateCount} duplicados.`;
+            }
+            if (emptyCount > 0) {
+              notificationText += ` Se ignoraron ${emptyCount} filas vacías.`;
+            }
+
+            showNotification(notificationText, processedCount > 0 ? 'emerald' : 'amber');
           } catch (e) {
             hideIngestOverlay();
             alert('Error al leer el archivo Excel: ' + e.message);
