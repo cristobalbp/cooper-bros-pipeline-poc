@@ -168,21 +168,26 @@
   </div>
 
   <!-- Floating Chatbot Widget -->
-  <div id="chatbot-container" class="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+  <div id="chatbot-container" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end">
     <!-- Chat Window -->
-    <div id="chat-window" class="hidden w-[92vw] sm:w-[400px] h-[500px] max-h-[80vh] bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-4 transform scale-95 opacity-0 origin-bottom-right transition-all duration-300">
+    <div id="chat-window" class="hidden w-[92vw] sm:w-[400px] h-[500px] max-h-[75vh] sm:max-h-[80vh] bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-3.5 transform scale-95 opacity-0 origin-bottom-right transition-all duration-300">
       <!-- Chat Header -->
-      <div class="px-4 py-3.5 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+      <div class="px-4 py-3 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
         <div class="flex items-center space-x-2.5">
           <div class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></div>
           <div>
-            <h4 class="text-sm font-bold">Oficial de Cumplimiento IA</h4>
-            <p class="text-[10px] text-zinc-500">Consultas sobre normativa y casos</p>
+            <h4 class="text-xs sm:text-sm font-bold">Oficial de Cumplimiento IA</h4>
+            <p class="text-[9px] sm:text-[10px] text-zinc-500">Consultas sobre normativa y casos</p>
           </div>
         </div>
-        <button id="chat-clear-btn" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200" title="Limpiar historial">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
-        </button>
+        <div class="flex items-center space-x-1.5">
+          <button id="chat-clear-btn" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-colors" title="Limpiar historial">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="chat-minimize-btn" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-colors" title="Minimizar chat">
+            <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
       </div>
       
       <!-- Chat Messages Container -->
@@ -220,9 +225,14 @@
     </div>
 
     <!-- Chat Toggle Button -->
-    <button id="chat-toggle-btn" class="w-14 h-14 bg-gradient-to-tr from-zinc-900 to-zinc-800 dark:from-zinc-50 dark:to-zinc-200 hover:scale-105 transition-all text-white dark:text-zinc-950 rounded-full shadow-2xl flex items-center justify-center border border-zinc-200 dark:border-zinc-800">
-      <i id="chat-icon-open" data-lucide="message-square-text" class="w-6 h-6 block"></i>
-      <i id="chat-icon-close" data-lucide="chevron-down" class="w-6 h-6 hidden"></i>
+    <button id="chat-toggle-btn" class="h-11 px-3.5 bg-gradient-to-tr from-zinc-900 to-zinc-800 dark:from-zinc-50 dark:to-zinc-200 hover:scale-105 active:scale-95 transition-all text-white dark:text-zinc-950 rounded-full shadow-2xl flex items-center space-x-2 border border-zinc-200 dark:border-zinc-800 group" title="Preguntar a la IA">
+      <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+      </span>
+      <i id="chat-icon-open" data-lucide="sparkles" class="w-4 h-4 block group-hover:rotate-12 transition-transform"></i>
+      <i id="chat-icon-close" data-lucide="chevron-down" class="w-4 h-4 hidden"></i>
+      <span class="text-xs font-bold tracking-tight pr-0.5">Pregúntale a la IA</span>
     </button>
   </div>
 
@@ -296,23 +306,25 @@
 
     <!-- Filters Section -->
     <section class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-4 md:p-6 space-y-4">
-      <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <div class="w-full md:w-1/3 relative">
+      <div class="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center">
+        <!-- Search bar -->
+        <div class="w-full lg:w-1/3 relative">
           <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
           <input type="text" id="search-input" placeholder="Buscar por cliente, id, incidente..." class="w-full pl-9 pr-4 h-10 text-sm bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-all">
         </div>
         
-        <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+        <!-- Filters grouping -->
+        <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full lg:w-auto">
           <!-- Filter by Severity -->
-          <div class="flex items-center space-x-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-1">
-            <button class="filter-sev-btn text-xs font-medium px-3 py-1.5 rounded-md hover:text-zinc-900 dark:hover:text-white transition-all text-zinc-500 active-filter bg-white dark:bg-[#0c0c0e] shadow-sm text-zinc-900 dark:text-white" data-severity="ALL">Todos</button>
-            <button class="filter-sev-btn text-xs font-medium px-3 py-1.5 rounded-md text-zinc-500 hover:text-red-500 transition-all" data-severity="ROJO">Rojo</button>
-            <button class="filter-sev-btn text-xs font-medium px-3 py-1.5 rounded-md text-zinc-500 hover:text-amber-500 transition-all" data-severity="AMARILLO">Amarillo</button>
-            <button class="filter-sev-btn text-xs font-medium px-3 py-1.5 rounded-md text-zinc-500 hover:text-emerald-500 transition-all" data-severity="VERDE">Verde</button>
+          <div class="flex items-center justify-between w-full sm:w-auto space-x-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-1">
+            <button class="filter-sev-btn flex-1 sm:flex-initial text-center text-xs font-medium px-3 py-1.5 rounded-md hover:text-zinc-900 dark:hover:text-white transition-all text-zinc-500 active-filter bg-white dark:bg-[#0c0c0e] shadow-sm text-zinc-900 dark:text-white" data-severity="ALL">Todos</button>
+            <button class="filter-sev-btn flex-1 sm:flex-initial text-center text-xs font-medium px-3 py-1.5 rounded-md text-zinc-500 hover:text-red-500 transition-all" data-severity="ROJO">Rojo</button>
+            <button class="filter-sev-btn flex-1 sm:flex-initial text-center text-xs font-medium px-3 py-1.5 rounded-md text-zinc-500 hover:text-amber-500 transition-all" data-severity="AMARILLO">Amarillo</button>
+            <button class="filter-sev-btn flex-1 sm:flex-initial text-center text-xs font-medium px-3 py-1.5 rounded-md text-zinc-500 hover:text-emerald-500 transition-all" data-severity="VERDE">Verde</button>
           </div>
 
           <!-- Filter by Source -->
-          <select id="source-filter" class="h-10 text-xs bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md px-3 focus:outline-none transition-all">
+          <select id="source-filter" class="w-full sm:w-auto h-10 text-xs bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md px-3 focus:outline-none transition-all cursor-pointer">
             <option value="ALL">Todos los orígenes</option>
             <option value="correo_electronico">Canal Correo</option>
             <option value="fila_excel">Canal Excel</option>
@@ -323,13 +335,13 @@
 
     <!-- Cases Data Grid / List -->
     <section class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold tracking-tight">Listado de Casos Analizados</h2>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 class="text-base sm:text-lg font-semibold tracking-tight">Listado de Casos Analizados</h2>
         <span id="cases-count-label" class="text-xs text-zinc-500">Mostrando 0 de 0 registros</span>
       </div>
 
-      <!-- Main container of records -->
-      <div id="cases-container" class="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+      <!-- Main container of records (Beautiful responsive grid layout) -->
+      <div id="cases-container" class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <!-- Dynamic loading placeholders -->
         <div class="animate-pulse rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
           <div class="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-1/4"></div>
@@ -1192,7 +1204,7 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
       const chatIconOpen = document.getElementById('chat-icon-open');
       const chatIconClose = document.getElementById('chat-icon-close');
 
-      chatToggleBtn.addEventListener('click', () => {
+      const toggleChat = () => {
         if (chatWindow.classList.contains('hidden')) {
           chatWindow.classList.remove('hidden');
           chatIconOpen.classList.add('hidden');
@@ -1208,7 +1220,10 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
           chatIconClose.classList.add('hidden');
           setTimeout(() => chatWindow.classList.add('hidden'), 300);
         }
-      });
+      };
+
+      chatToggleBtn.addEventListener('click', toggleChat);
+      document.getElementById('chat-minimize-btn').addEventListener('click', toggleChat);
 
       // --- Chat Submission Handling ---
       const chatForm = document.getElementById('chat-form');
