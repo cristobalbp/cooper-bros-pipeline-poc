@@ -87,30 +87,30 @@
 
   <!-- Header Section -->
   <header class="sticky top-0 z-40 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-[#09090b]/85 backdrop-blur-md">
-    <div class="container mx-auto px-4 md:px-8 flex h-16 items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="bg-gradient-to-tr from-red-600 to-amber-500 text-white p-2 rounded-lg shadow-md animate-pulse">
-          <i data-lucide="shield-alert" class="w-6 h-6"></i>
+    <div class="container mx-auto px-4 md:px-8 flex h-14 sm:h-16 items-center justify-between gap-2">
+      <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
+        <div class="bg-gradient-to-tr from-red-600 to-amber-500 text-white p-1.5 sm:p-2 rounded-lg shadow-md animate-pulse flex-shrink-0">
+          <i data-lucide="shield-alert" class="w-4 h-4 sm:w-6 sm:h-6"></i>
         </div>
-        <div>
-          <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
+        <div class="min-w-0">
+          <h1 class="text-sm sm:text-base md:text-lg font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent truncate">
             Cooper Bros. Compliance Pipeline
           </h1>
-          <p class="text-xs text-zinc-500">Motor de Clasificación y Estandarización Asistido por IA</p>
+          <p class="text-[10px] sm:text-xs text-zinc-500 hidden sm:block truncate">Motor de Clasificación y Estandarización Asistido por IA</p>
         </div>
       </div>
       
       <!-- Theme Switcher & Actions -->
-      <div class="flex items-center space-x-3">
-        <button id="theme-toggle" class="p-2 text-zinc-500 hover:text-zinc-950 dark:hover:text-white rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all" title="Alternar modo oscuro/claro">
+      <div class="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0">
+        <button id="theme-toggle" class="p-1.5 sm:p-2 text-zinc-500 hover:text-zinc-950 dark:hover:text-white rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all" title="Alternar modo oscuro/claro">
           <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
           <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
         </button>
-        <button id="api-key-toggle" class="p-2 text-zinc-500 hover:text-zinc-950 dark:hover:text-white rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all relative" title="Configurar API Key de Gemini">
+        <button id="api-key-toggle" class="p-1.5 sm:p-2 text-zinc-500 hover:text-zinc-950 dark:hover:text-white rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all relative" title="Configurar API Key de Gemini">
           <i data-lucide="key" class="w-4 h-4"></i>
           <span id="api-key-badge" class="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full hidden animate-pulse"></span>
         </button>
-        <button id="trigger-upload" class="hidden md:flex items-center space-x-2 bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-sm font-medium px-4 h-9 rounded-md transition-all shadow-sm" title="Importar base de datos JSON previa">
+        <button id="trigger-upload" class="hidden md:flex items-center space-x-2 bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 text-sm font-medium px-4 h-9 rounded-md transition-all shadow-sm" title="Importar base de datos JSON previa">
           <i data-lucide="upload" class="w-4 h-4"></i>
           <span>Importar JSON</span>
         </button>
@@ -226,10 +226,13 @@
 
     <!-- Chat Toggle Button Container with Floating Label next to the "Bolita" -->
     <div id="chat-toggle-wrapper" class="flex items-center space-x-2 cursor-pointer group">
-      <!-- Inviting float badge -->
-      <div id="chat-toggle-label" class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-100 dark:to-zinc-200 text-white dark:text-zinc-950 backdrop-blur-md px-4 py-2 rounded-full shadow-xl text-xs font-bold transition-all duration-300 select-none flex items-center space-x-2 border border-zinc-800 dark:border-zinc-300">
-        <span>Pregúntale a la IA</span>
-        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400 dark:text-amber-500 animate-pulse"></i>
+      <!-- Responsive container prevents badge from appearing on mobile, averting visual clutter -->
+      <div class="hidden sm:block">
+        <!-- Inviting float badge -->
+        <div id="chat-toggle-label" class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-100 dark:to-zinc-200 text-white dark:text-zinc-950 backdrop-blur-md px-4 py-2 rounded-full shadow-xl text-xs font-bold transition-all duration-300 select-none flex items-center space-x-2 border border-zinc-800 dark:border-zinc-300">
+          <span>Pregúntale a la IA</span>
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400 dark:text-amber-500 animate-pulse"></i>
+        </div>
       </div>
       <!-- The round floating button itself (la bolita) -->
       <button id="chat-toggle-btn" class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-tr from-zinc-950 to-zinc-800 dark:from-zinc-50 dark:to-zinc-200 hover:scale-110 active:scale-95 transition-all text-white dark:text-zinc-950 rounded-full shadow-2xl flex items-center justify-center border border-zinc-200 dark:border-zinc-800 relative focus:outline-none" title="Preguntar a la IA">
@@ -243,7 +246,7 @@
     </div>
   </div>
 
-  <main class="container mx-auto px-4 md:px-8 py-8 space-y-8">
+  <main class="container mx-auto px-4 md:px-8 pt-6 pb-24 sm:py-8 space-y-8">
     
     <!-- Top banner for local file warnings -->
     <div id="cors-banner" class="hidden flex items-start space-x-3 p-4 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-500 text-sm">
