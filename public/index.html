@@ -224,16 +224,23 @@
       </form>
     </div>
 
-    <!-- Chat Toggle Button -->
-    <button id="chat-toggle-btn" class="h-11 px-3.5 bg-gradient-to-tr from-zinc-900 to-zinc-800 dark:from-zinc-50 dark:to-zinc-200 hover:scale-105 active:scale-95 transition-all text-white dark:text-zinc-950 rounded-full shadow-2xl flex items-center space-x-2 border border-zinc-200 dark:border-zinc-800 group" title="Preguntar a la IA">
-      <span class="relative flex h-2 w-2">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-      </span>
-      <i id="chat-icon-open" data-lucide="sparkles" class="w-4 h-4 block group-hover:rotate-12 transition-transform"></i>
-      <i id="chat-icon-close" data-lucide="chevron-down" class="w-4 h-4 hidden"></i>
-      <span class="text-xs font-bold tracking-tight pr-0.5">Pregúntale a la IA</span>
-    </button>
+    <!-- Chat Toggle Button Container with Floating Label next to the "Bolita" -->
+    <div id="chat-toggle-wrapper" class="flex items-center space-x-2 cursor-pointer group">
+      <!-- Inviting float badge -->
+      <div id="chat-toggle-label" class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-100 dark:to-zinc-200 text-white dark:text-zinc-950 backdrop-blur-md px-4 py-2 rounded-full shadow-xl text-xs font-bold transition-all duration-300 select-none flex items-center space-x-2 border border-zinc-800 dark:border-zinc-300">
+        <span>Pregúntale a la IA</span>
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400 dark:text-amber-500 animate-pulse"></i>
+      </div>
+      <!-- The round floating button itself (la bolita) -->
+      <button id="chat-toggle-btn" class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-tr from-zinc-950 to-zinc-800 dark:from-zinc-50 dark:to-zinc-200 hover:scale-110 active:scale-95 transition-all text-white dark:text-zinc-950 rounded-full shadow-2xl flex items-center justify-center border border-zinc-200 dark:border-zinc-800 relative focus:outline-none" title="Preguntar a la IA">
+        <span class="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+        </span>
+        <i id="chat-icon-open" data-lucide="message-square" class="w-5 h-5 sm:w-6 sm:h-6 block group-hover:rotate-12 transition-transform"></i>
+        <i id="chat-icon-close" data-lucide="x" class="w-5 h-5 sm:w-6 sm:h-6 hidden"></i>
+      </button>
+    </div>
   </div>
 
   <main class="container mx-auto px-4 md:px-8 py-8 space-y-8">
@@ -261,45 +268,45 @@
     </div>
 
     <!-- Metrics Cards Grid -->
-    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <section class="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
       <!-- Total cases -->
-      <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-6 shadow-sm flex items-center justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
-        <div class="space-y-1">
-          <p class="text-xs font-medium uppercase tracking-wider text-zinc-500">Casos Totales</p>
-          <p id="stat-total" class="text-3xl font-bold tracking-tight">0</p>
+      <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-6 shadow-sm flex items-center justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+        <div class="space-y-0.5 sm:space-y-1">
+          <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500">Casos Totales</p>
+          <p id="stat-total" class="text-2xl sm:text-3xl font-bold tracking-tight">0</p>
         </div>
-        <div class="p-3 rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400">
-          <i data-lucide="archive" class="w-5 h-5"></i>
+        <div class="p-2 sm:p-3 rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400">
+          <i data-lucide="archive" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
       </div>
       <!-- Rojo (Crítico) -->
-      <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-6 shadow-sm flex items-center justify-between hover:border-red-500/30 transition-all">
-        <div class="space-y-1">
-          <p class="text-xs font-medium uppercase tracking-wider text-red-500">Prioridad Roja</p>
-          <p id="stat-rojo" class="text-3xl font-bold tracking-tight text-red-500">0</p>
+      <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-6 shadow-sm flex items-center justify-between hover:border-red-500/30 transition-all">
+        <div class="space-y-0.5 sm:space-y-1">
+          <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-red-500">Prioridad Roja</p>
+          <p id="stat-rojo" class="text-2xl sm:text-3xl font-bold tracking-tight text-red-500">0</p>
         </div>
-        <div class="p-3 rounded-full bg-red-500/10 text-red-500">
-          <i data-lucide="skull" class="w-5 h-5"></i>
+        <div class="p-2 sm:p-3 rounded-full bg-red-500/10 text-red-500">
+          <i data-lucide="skull" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
       </div>
       <!-- Amarillo (Dudoso) -->
-      <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-6 shadow-sm flex items-center justify-between hover:border-amber-500/30 transition-all">
-        <div class="space-y-1">
-          <p class="text-xs font-medium uppercase tracking-wider text-amber-500">Prioridad Amarilla</p>
-          <p id="stat-amarillo" class="text-3xl font-bold tracking-tight text-amber-500">0</p>
+      <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-6 shadow-sm flex items-center justify-between hover:border-amber-500/30 transition-all">
+        <div class="space-y-0.5 sm:space-y-1">
+          <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-amber-500">Prioridad Amarilla</p>
+          <p id="stat-amarillo" class="text-2xl sm:text-3xl font-bold tracking-tight text-amber-500">0</p>
         </div>
-        <div class="p-3 rounded-full bg-amber-500/10 text-amber-500">
-          <i data-lucide="shield-alert" class="w-5 h-5"></i>
+        <div class="p-2 sm:p-3 rounded-full bg-amber-500/10 text-amber-500">
+          <i data-lucide="shield-alert" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
       </div>
       <!-- Verde (Irrelevante) -->
-      <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-6 shadow-sm flex items-center justify-between hover:border-emerald-500/30 transition-all">
-        <div class="space-y-1">
-          <p class="text-xs font-medium uppercase tracking-wider text-emerald-500">Prioridad Verde</p>
-          <p id="stat-verde" class="text-3xl font-bold tracking-tight text-emerald-500">0</p>
+      <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-6 shadow-sm flex items-center justify-between hover:border-emerald-500/30 transition-all">
+        <div class="space-y-0.5 sm:space-y-1">
+          <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-emerald-500">Prioridad Verde</p>
+          <p id="stat-verde" class="text-2xl sm:text-3xl font-bold tracking-tight text-emerald-500">0</p>
         </div>
-        <div class="p-3 rounded-full bg-emerald-500/10 text-emerald-500">
-          <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+        <div class="p-2 sm:p-3 rounded-full bg-emerald-500/10 text-emerald-500">
+          <i data-lucide="check-circle-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
       </div>
     </section>
@@ -1200,6 +1207,7 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
 
       // --- Chatbot Window Toggle listeners ---
       const chatToggleBtn = document.getElementById('chat-toggle-btn');
+      const chatToggleLabel = document.getElementById('chat-toggle-label');
       const chatWindow = document.getElementById('chat-window');
       const chatIconOpen = document.getElementById('chat-icon-open');
       const chatIconClose = document.getElementById('chat-icon-close');
@@ -1209,6 +1217,9 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
           chatWindow.classList.remove('hidden');
           chatIconOpen.classList.add('hidden');
           chatIconClose.classList.remove('hidden');
+          if (chatToggleLabel) {
+            chatToggleLabel.classList.add('hidden');
+          }
           setTimeout(() => {
             chatWindow.classList.remove('scale-95', 'opacity-0');
             chatWindow.classList.add('scale-100', 'opacity-100');
@@ -1218,11 +1229,17 @@ Sección 1 - Criterios del Semáforo de Cumplimiento:
           chatWindow.classList.add('scale-95', 'opacity-0');
           chatIconOpen.classList.remove('hidden');
           chatIconClose.classList.add('hidden');
+          if (chatToggleLabel) {
+            chatToggleLabel.classList.remove('hidden');
+          }
           setTimeout(() => chatWindow.classList.add('hidden'), 300);
         }
       };
 
       chatToggleBtn.addEventListener('click', toggleChat);
+      if (chatToggleLabel) {
+        chatToggleLabel.addEventListener('click', toggleChat);
+      }
       document.getElementById('chat-minimize-btn').addEventListener('click', toggleChat);
 
       // --- Chat Submission Handling ---
