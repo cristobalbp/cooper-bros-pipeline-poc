@@ -37,6 +37,9 @@
   
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- SheetJS CDN for Client-Side Excel Ingestion -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Shadcn Colors Custom Variables -->
   <style>
@@ -103,15 +106,125 @@
           <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
           <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
         </button>
-        <button id="trigger-upload" class="hidden md:flex items-center space-x-2 bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-sm font-medium px-4 h-9 rounded-md transition-all shadow-sm">
+        <button id="api-key-toggle" class="p-2 text-zinc-500 hover:text-zinc-950 dark:hover:text-white rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all relative" title="Configurar API Key de Gemini">
+          <i data-lucide="key" class="w-4 h-4"></i>
+          <span id="api-key-badge" class="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full hidden animate-pulse"></span>
+        </button>
+        <button id="trigger-upload" class="hidden md:flex items-center space-x-2 bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-sm font-medium px-4 h-9 rounded-md transition-all shadow-sm" title="Importar base de datos JSON previa">
           <i data-lucide="upload" class="w-4 h-4"></i>
           <span>Importar JSON</span>
         </button>
-        <!-- Hidden input for file importing -->
-        <input type="file" id="file-input" accept=".json" class="hidden">
+        <!-- Hidden input for file importing (.json databases or raw .txt/.xlsx inputs) -->
+        <input type="file" id="file-input" accept=".json,.txt,.xlsx" class="hidden">
       </div>
     </div>
   </header>
+
+  <!-- API Key Config Modal -->
+  <div id="api-key-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white dark:bg-[#0c0c0e] rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6 space-y-4 transform scale-95 opacity-0 transition-all duration-200">
+      <div class="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
+        <h3 class="text-sm font-bold flex items-center space-x-2 text-zinc-900 dark:text-white">
+          <i data-lucide="key" class="w-4 h-4 text-amber-500"></i>
+          <span>Gemini API Key</span>
+        </h3>
+        <button id="api-key-close" class="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+        Para procesar archivos sucios (.txt, .xlsx) e interactuar con el Chatbot directamente desde tu navegador (por ejemplo, al hospedar en Vercel), ingresa tu API Key de Google Gemini. Se almacena localmente en tu navegador.
+      </p>
+      <div class="space-y-2">
+        <label for="gemini-key-input" class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Gemini API Key</label>
+        <input type="password" id="gemini-key-input" placeholder="AIzaSy..." class="w-full px-3 h-10 text-sm bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:text-white">
+      </div>
+      <div class="flex justify-between items-center pt-2">
+        <span id="api-key-status" class="text-xs text-amber-500 flex items-center space-x-1">
+          <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+          <span>Sin API Key guardada</span>
+        </span>
+        <div class="flex space-x-2">
+          <button id="api-key-clear" class="px-3 h-9 text-xs border border-zinc-200 dark:border-zinc-800 text-red-500 hover:bg-red-500/10 rounded-md transition-all">Eliminar</button>
+          <button id="api-key-save" class="px-4 h-9 text-xs bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-semibold rounded-md transition-all shadow-sm">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ingestion Loading Overlay -->
+  <div id="ingest-loading-overlay" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="text-center space-y-4 max-w-sm">
+      <div class="inline-flex p-4 bg-zinc-900 border border-zinc-800 rounded-full text-amber-500 animate-spin">
+        <i data-lucide="loader-2" class="w-8 h-8"></i>
+      </div>
+      <div class="space-y-1">
+        <h3 id="ingest-loading-title" class="text-base font-bold text-white">Procesando archivo...</h3>
+        <p id="ingest-loading-subtitle" class="text-xs text-zinc-400 leading-relaxed">
+          Ingiriendo datos crudos y ejecutando auditoría asistida por Gemini en tiempo real. Esto puede demorar unos segundos.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Chatbot Widget -->
+  <div id="chatbot-container" class="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+    <!-- Chat Window -->
+    <div id="chat-window" class="hidden w-[92vw] sm:w-[400px] h-[500px] max-h-[80vh] bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-4 transform scale-95 opacity-0 origin-bottom-right transition-all duration-300">
+      <!-- Chat Header -->
+      <div class="px-4 py-3.5 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></div>
+          <div>
+            <h4 class="text-sm font-bold">Oficial de Cumplimiento IA</h4>
+            <p class="text-[10px] text-zinc-500">Consultas sobre normativa y casos</p>
+          </div>
+        </div>
+        <button id="chat-clear-btn" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200" title="Limpiar historial">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+      
+      <!-- Chat Messages Container -->
+      <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4 text-xs">
+        <!-- AI Welcome Message -->
+        <div class="flex items-start space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold">CB</div>
+          <div class="space-y-1.5 max-w-[80%]">
+            <div class="p-3 bg-zinc-100 dark:bg-zinc-900 rounded-lg rounded-tl-none leading-relaxed text-zinc-800 dark:text-zinc-200">
+              Hola, soy tu Oficial de Cumplimiento IA de Cooper Bros. Puedo responder dudas sobre la **Normativa Interna de Cumplimiento** y el estado de los **casos auditados**. ¿En qué puedo ayudarte hoy?
+            </div>
+            <!-- Dynamic Suggestions -->
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              <button class="chat-suggest bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-1 rounded text-[10px] transition-all">
+                Resumen de casos críticos 🔴
+              </button>
+              <button class="chat-suggest bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-1 rounded text-[10px] transition-all">
+                ¿Qué dice la normativa sobre filtraciones?
+              </button>
+              <button class="chat-suggest bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-1 rounded text-[10px] transition-all">
+                ¿Hay casos de Santos Energia?
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Chat Input Area -->
+      <form id="chat-form" class="p-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center space-x-2 bg-zinc-50 dark:bg-zinc-900/20">
+        <input type="text" id="chat-input" placeholder="Pregunta sobre la normativa o los casos..." class="flex-1 px-3 h-10 text-xs bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:text-white" autocomplete="off">
+        <button type="submit" class="w-10 h-10 bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-md flex items-center justify-center shadow transition-all">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </div>
+
+    <!-- Chat Toggle Button -->
+    <button id="chat-toggle-btn" class="w-14 h-14 bg-gradient-to-tr from-zinc-900 to-zinc-800 dark:from-zinc-50 dark:to-zinc-200 hover:scale-105 transition-all text-white dark:text-zinc-950 rounded-full shadow-2xl flex items-center justify-center border border-zinc-200 dark:border-zinc-800">
+      <i id="chat-icon-open" data-lucide="message-square-text" class="w-6 h-6 block"></i>
+      <i id="chat-icon-close" data-lucide="chevron-down" class="w-6 h-6 hidden"></i>
+    </button>
+  </div>
 
   <main class="container mx-auto px-4 md:px-8 py-8 space-y-8">
     
@@ -119,9 +232,9 @@
     <div id="cors-banner" class="hidden flex items-start space-x-3 p-4 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-500 text-sm">
       <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
       <div class="space-y-1">
-        <p class="font-semibold">Carga local restringida por seguridad del navegador (CORS)</p>
+        <p class="font-semibold">Configuración Requerida o CORS Activo</p>
         <p class="text-zinc-500 dark:text-zinc-400 leading-relaxed text-xs">
-          Estamos mostrando datos de prueba pre-cargados. Para ver tu base de datos real, arrastra el archivo <code class="bg-amber-500/10 px-1.5 py-0.5 rounded font-mono text-amber-600 dark:text-amber-400">resultados-finales.json</code> de tu carpeta <code class="bg-amber-500/10 px-1.5 py-0.5 rounded font-mono text-amber-600 dark:text-amber-400">public/storage/</code> a esta ventana, haz clic en <strong>Importar JSON</strong> en la cabecera, o ejecuta un servidor local usando <code class="bg-amber-500/10 px-1.5 py-0.5 rounded font-mono text-amber-600 dark:text-amber-400">npm run serve</code>.
+          Estamos mostrando datos estáticos de demostración. Puedes arrastrar tu base de datos <code class="bg-amber-500/10 px-1.5 py-0.5 rounded font-mono text-amber-600 dark:text-amber-400">resultados-finales.json</code> para cargarla, o **ingresar tu API Key de Gemini** en la cabecera para **procesar archivos sucios (.txt / .xlsx)** e interactuar con el **Chatbot de Cumplimiento** directamente desde tu navegador en tiempo real.
         </p>
       </div>
     </div>
@@ -130,10 +243,10 @@
     <div id="drop-zone" class="relative group block w-full p-6 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-lg cursor-pointer transition-all bg-zinc-500/5 hover:bg-zinc-500/10">
       <div class="flex flex-col items-center justify-center space-y-2 py-4">
         <div class="p-3 bg-zinc-200 dark:bg-zinc-800 rounded-full text-zinc-500 dark:text-zinc-400 group-hover:scale-110 transition-transform">
-          <i data-lucide="file-json" class="w-6 h-6"></i>
+          <i data-lucide="upload-cloud" class="w-6 h-6"></i>
         </div>
-        <p class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Arrastra tu archivo `resultados-finales.json` aquí</p>
-        <p class="text-xs text-zinc-500">o haz clic para explorar los archivos de tu sistema</p>
+        <p class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Arrastra tu base de datos (.json) o archivos sucios (.txt, .xlsx) aquí</p>
+        <p class="text-xs text-zinc-500">o haz clic para explorar tus archivos locales e ingerir en tiempo real</p>
       </div>
     </div>
 
@@ -722,6 +835,237 @@
       return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    // Notification, Modal, and Overlay helper functions
+    function showNotification(message, color = 'emerald') {
+      const banner = document.createElement('div');
+      const bgClass = color === 'emerald' ? 'bg-emerald-600' : 'bg-amber-600';
+      banner.className = `fixed bottom-5 right-5 ${bgClass} text-white px-4 py-3 rounded-lg shadow-xl z-50 text-sm font-semibold flex items-center space-x-2 animate-bounce`;
+      banner.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> <span>${message}</span>`;
+      document.body.appendChild(banner);
+      lucide.createIcons();
+      setTimeout(() => banner.remove(), 4000);
+    }
+
+    function showIngestOverlay(title, subtitle) {
+      document.getElementById('ingest-loading-title').innerText = title;
+      document.getElementById('ingest-loading-subtitle').innerText = subtitle;
+      document.getElementById('ingest-loading-overlay').classList.remove('hidden');
+    }
+
+    function hideIngestOverlay() {
+      document.getElementById('ingest-loading-overlay').classList.add('hidden');
+    }
+
+    function initAPIKey() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const badge = document.getElementById('api-key-badge');
+      const statusLabel = document.getElementById('api-key-status');
+      
+      if (apiKey) {
+        badge.classList.remove('hidden');
+        statusLabel.className = "text-xs text-emerald-500 flex items-center space-x-1 font-semibold";
+        statusLabel.innerHTML = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> <span>API Key Configurada</span>`;
+        document.getElementById('gemini-key-input').value = apiKey;
+      } else {
+        badge.classList.add('hidden');
+        statusLabel.className = "text-xs text-amber-500 flex items-center space-x-1";
+        statusLabel.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> <span>Sin API Key guardada</span>`;
+        document.getElementById('gemini-key-input').value = '';
+      }
+      lucide.createIcons();
+    }
+
+    // Direct Browser-to-Gemini REST API Caller
+    let cachedNormativaText = '';
+    async function getNormativaText() {
+      if (cachedNormativaText) return cachedNormativaText;
+      try {
+        const res = await fetch('./normativa-cooper.md');
+        if (!res.ok) throw new Error();
+        cachedNormativaText = await res.text();
+        return cachedNormativaText;
+      } catch (err) {
+        console.warn('Fallo al descargar normativa local, usando respaldo embebido.');
+        return `
+# NORMATIVA INTERNA COOPER BROS
+Sección 1 - Criterios del Semáforo de Cumplimiento:
+- 🔴 ROJO: Brechas de seguridad, contraseñas expuestas, fraudes financieros, demandas contractuales críticas.
+- 🟡 AMARILLO: Demoras operativas significativas, disputas contractuales menores.
+- 🟢 VERDE: Spam, consultas comerciales normales, saludos de cortesía.
+        `;
+      }
+    }
+
+    async function callGeminiAPIClientSide(apiKey, systemInstruction, contents) {
+      // Standard Google Gemini API REST endpoint using gemini-2.5-flash
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: contents
+            }]
+          }],
+          systemInstruction: {
+            parts: [{
+              text: systemInstruction
+            }]
+          },
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || `HTTP ${response.status}`;
+        throw new Error(errMsg);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error('No se recibió respuesta válida del modelo.');
+      }
+      return text;
+    }
+
+    async function processRawCaseClientSide(fileName, rawText, originType, isBatch = false) {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      if (!apiKey) throw new Error('API Key no configurada.');
+
+      if (!isBatch) {
+        showIngestOverlay(`Auditando caso...`, `Enviando texto a Gemini para clasificación semántica...`);
+      }
+
+      try {
+        const normativaText = await getNormativaText();
+        
+        const systemPrompt = `
+          Eres un Analista de Cumplimiento y Oficial de Seguridad de la Información Senior en Cooper Bros.
+          Tu tarea es evaluar el caso provisto (procedente de correos o planillas Excel) y realizar un análisis semántico estricto utilizando como única base de conocimiento la siguiente Normativa Interna de Cumplimiento Político y Seguridad:
+          
+          ================================================================
+          NORMATIVA INTERNA DE COOPER BROS:
+          ${normativaText}
+          ================================================================
+          
+          INSTRUCCIONES DE RESPUESTA:
+          - Debes responder exclusivamente con un objeto JSON válido.
+          - No agregues markdown adicional (como \`\`\`json ... \`\`\`), texto aclaratorio, ni explicaciones fuera de la estructura JSON.
+          - La estructura JSON debe contener estrictamente los siguientes tres campos:
+            1. "severidad": Debe tomar exactamente uno de estos tres valores: "ROJO", "AMARILLO" o "VERDE".
+            2. "justificacion": Una justificación analítica redactada siempre en ESPAÑOL. Explica con claridad cuál es el motivo legal, técnico, de seguridad o comercial conforme a la normativa de Cooper Bros. que sustenta esta clasificación.
+            3. "regla_violada": Identifica el artículo, sección, término del glosario o política específica infringida o relacionada de la normativa.
+        `;
+
+        const aiResponseText = await callGeminiAPIClientSide(apiKey, systemPrompt, rawText);
+        const parsedAnalysis = JSON.parse(aiResponseText);
+
+        // Generar ID único cliente usando UUID
+        const uniqueId = `${originType === 'correo_electronico' ? 'EMAIL' : 'EXCEL'}-${self.crypto.randomUUID()}`;
+        
+        const record = {
+          id: uniqueId,
+          origen: originType,
+          archivo_origen: fileName,
+          texto_crudo: rawText,
+          fecha_ingesta: new Date().toISOString(),
+          analisis: {
+            severidad: parsedAnalysis.severidad || 'AMARILLO',
+            justificacion: parsedAnalysis.justificacion || 'No se proveyó justificación.',
+            regla_violada: parsedAnalysis.regla_violada || 'No especificada.'
+          },
+          fecha_evaluacion: new Date().toISOString()
+        };
+
+        // Insertar al inicio de la lista global
+        appData.unshift(record);
+        renderDashboard(appData);
+
+        if (!isBatch) {
+          showNotification('Caso auditado e ingresado exitosamente', 'emerald');
+        }
+      } catch (err) {
+        console.error('Error procesando caso:', err);
+        if (!isBatch) {
+          alert(`Error al auditar el caso: ${err.message}`);
+        }
+        throw err;
+      } finally {
+        if (!isBatch) {
+          hideIngestOverlay();
+        }
+      }
+    }
+
+    async function callChatbotAPI(apiKey, userMessage) {
+      const normativaText = await getNormativaText();
+      const casesSummary = appData.map(c => `ID: ${c.id}\nOrigen: ${c.origen}\nSeveridad: ${c.analisis.severidad}\nJustificación: ${c.analisis.justificacion}\nRegla: ${c.analisis.regla_violada}\nTexto Crudo: ${c.texto_crudo}\n---`).join('\n');
+      
+      const systemInstruction = `
+        Eres el Oficial de Cumplimiento IA oficial y experto en gobernanza de Cooper Bros.
+        Tu objetivo es responder de forma profesional, concisa y servicial a consultas de los directivos y colaboradores de la empresa.
+        Utiliza únicamente el español como idioma de respuesta.
+        
+        Tienes acceso a las siguientes dos fuentes de información contextual:
+        
+        1. NORMATIVA INTERNA DE COOPER BROS:
+        ${normativaText}
+        
+        2. CASOS ACTUALMENTE CARGADOS EN LA BASE DE DATOS DE LA AUDITORÍA:
+        ${casesSummary}
+        
+        INSTRUCCIONES DE RESPUESTA:
+        - Responde de forma resumida y directa. Usa un tono corporativo pero amigable.
+        - Si te preguntan sobre brechas de seguridad críticas o de prioridad roja, resume los casos relevantes de la base de datos (por ejemplo, identificando a clientes como Apex Solutions o Vanguard Group).
+        - Si te preguntan por regulaciones generales, cita los artículos correspondientes de la Normativa.
+        - Si la información no está disponible ni en la normativa ni en la base de datos de casos, indica de forma educada que no tienes registros de ello pero menciona las reglas generales relacionadas.
+        - Puedes usar emojis en tus respuestas de forma profesional (🔴, 🟡, 🟢, 🛡️, etc.).
+        - Responde en formato de texto plano enriquecido (puedes usar negritas de Markdown para resaltar).
+      `;
+
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: userMessage
+            }]
+          }],
+          systemInstruction: {
+            parts: [{
+              text: systemInstruction
+            }]
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || `HTTP ${response.status}`;
+        throw new Error(errMsg);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error('No se recibió respuesta del chatbot.');
+      }
+      return text;
+    }
+
     // Event listeners binding
     function setupEventListeners() {
       // 1. Modal dismiss
@@ -759,26 +1103,30 @@
         filterAndRenderCases();
       });
 
-      // 5. File Import logic
+      // 5. File Import/Upload logic
       const fileInput = document.getElementById('file-input');
       const triggerBtn = document.getElementById('trigger-upload');
       
-      triggerBtn.addEventListener('click', () => fileInput.click());
+      if (triggerBtn) {
+        triggerBtn.addEventListener('click', () => fileInput.click());
+      }
       
       fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) handleFileImport(file);
       });
 
-      // Drag and Drop Logic
+      // Drag and Drop Logic for drop zone
       const dropZone = document.getElementById('drop-zone');
-      dropZone.addEventListener('click', () => fileInput.click());
+      if (dropZone) {
+        dropZone.addEventListener('click', () => fileInput.click());
+      }
       
       window.addEventListener('dragover', (e) => e.preventDefault());
       window.addEventListener('drop', (e) => {
         e.preventDefault();
         const file = e.dataTransfer.files[0];
-        if (file && file.name.endsWith('.json')) {
+        if (file) {
           handleFileImport(file);
         }
       });
@@ -794,35 +1142,302 @@
           }, 2000);
         });
       });
-    }
 
-    // Handles file upload and parses JSON safely
-    function handleFileImport(file) {
-      const reader = new FileReader();
-      reader.onload = function(event) {
+      // --- API Key Modal triggers ---
+      const apiKeyModal = document.getElementById('api-key-modal');
+      const apiKeyInner = apiKeyModal.querySelector('div');
+      
+      const showAPIKeyModal = () => {
+        apiKeyModal.classList.remove('hidden');
+        setTimeout(() => {
+          apiKeyInner.classList.remove('scale-95', 'opacity-0');
+          apiKeyInner.classList.add('scale-100', 'opacity-100');
+        }, 50);
+      };
+      
+      const hideAPIKeyModal = () => {
+        apiKeyInner.classList.remove('scale-100', 'opacity-100');
+        apiKeyInner.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => apiKeyModal.classList.add('hidden'), 200);
+      };
+
+      document.getElementById('api-key-toggle').addEventListener('click', showAPIKeyModal);
+      document.getElementById('api-key-close').addEventListener('click', hideAPIKeyModal);
+      apiKeyModal.addEventListener('click', (e) => {
+        if (e.target === apiKeyModal) hideAPIKeyModal();
+      });
+
+      document.getElementById('api-key-save').addEventListener('click', () => {
+        const key = document.getElementById('gemini-key-input').value.trim();
+        if (key) {
+          localStorage.setItem('gemini_api_key', key);
+          initAPIKey();
+          hideAPIKeyModal();
+          showNotification('Gemini API Key guardada', 'emerald');
+        } else {
+          alert('Por favor, ingresa una API Key válida.');
+        }
+      });
+
+      document.getElementById('api-key-clear').addEventListener('click', () => {
+        localStorage.removeItem('gemini_api_key');
+        initAPIKey();
+        hideAPIKeyModal();
+        showNotification('Gemini API Key eliminada', 'amber');
+      });
+
+      // --- Chatbot Window Toggle listeners ---
+      const chatToggleBtn = document.getElementById('chat-toggle-btn');
+      const chatWindow = document.getElementById('chat-window');
+      const chatIconOpen = document.getElementById('chat-icon-open');
+      const chatIconClose = document.getElementById('chat-icon-close');
+
+      chatToggleBtn.addEventListener('click', () => {
+        if (chatWindow.classList.contains('hidden')) {
+          chatWindow.classList.remove('hidden');
+          chatIconOpen.classList.add('hidden');
+          chatIconClose.classList.remove('hidden');
+          setTimeout(() => {
+            chatWindow.classList.remove('scale-95', 'opacity-0');
+            chatWindow.classList.add('scale-100', 'opacity-100');
+          }, 50);
+        } else {
+          chatWindow.classList.remove('scale-100', 'opacity-100');
+          chatWindow.classList.add('scale-95', 'opacity-0');
+          chatIconOpen.classList.remove('hidden');
+          chatIconClose.classList.add('hidden');
+          setTimeout(() => chatWindow.classList.add('hidden'), 300);
+        }
+      });
+
+      // --- Chat Submission Handling ---
+      const chatForm = document.getElementById('chat-form');
+      const chatInput = document.getElementById('chat-input');
+      const chatMessages = document.getElementById('chat-messages');
+
+      const appendMessage = (sender, text, isUser = false) => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `flex items-start space-x-2.5 ${isUser ? 'justify-end' : ''}`;
+        
+        const avatar = isUser ? '' : `<div class="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold flex-shrink-0">CB</div>`;
+        const userAvatar = isUser ? `<div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold flex-shrink-0">U</div>` : '';
+        const bgClass = isUser ? 'bg-zinc-900 dark:bg-zinc-800 text-white rounded-tr-none' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 rounded-tl-none';
+        
+        msgDiv.innerHTML = `
+          ${avatar}
+          <div class="space-y-1 max-w-[80%]">
+            <div class="p-3 rounded-lg leading-relaxed ${bgClass}">
+              ${text.replace(/\n/g, '<br>')}
+            </div>
+          </div>
+          ${userAvatar}
+        `;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      };
+
+      const handleUserChat = async (msgText) => {
+        if (!msgText.trim()) return;
+        
+        const apiKey = localStorage.getItem('gemini_api_key');
+        if (!apiKey) {
+          appendMessage('CB', '⚠️ Para responder tus preguntas con la IA, por favor **configura tu Gemini API Key** haciendo clic en el icono de llave en la parte superior derecha de la pantalla.');
+          // Select modal element to trigger open
+          apiKeyModal.classList.remove('hidden');
+          setTimeout(() => {
+            apiKeyInner.classList.remove('scale-95', 'opacity-0');
+            apiKeyInner.classList.add('scale-100', 'opacity-100');
+          }, 50);
+          return;
+        }
+
+        appendMessage('U', msgText, true);
+        chatInput.value = '';
+
+        // Add Loading bubble
+        const loaderDiv = document.createElement('div');
+        loaderDiv.id = 'chat-loading-bubble';
+        loaderDiv.className = 'flex items-start space-x-2.5';
+        loaderDiv.innerHTML = `
+          <div class="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold flex-shrink-0 animate-pulse">CB</div>
+          <div class="p-3 bg-zinc-100 dark:bg-zinc-900 rounded-lg rounded-tl-none text-zinc-500 flex items-center space-x-1.5">
+            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+            <span>Oficial analizando...</span>
+          </div>
+        `;
+        chatMessages.appendChild(loaderDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        lucide.createIcons();
+
         try {
-          const importedData = JSON.parse(event.target.result);
-          if (Array.isArray(importedData)) {
-            // Success loading external database
-            console.log('✅ Base de datos importada exitosamente por el usuario.');
-            document.getElementById('cors-banner').classList.add('hidden');
-            renderDashboard(importedData);
-            
-            // Animation flash to notify success
-            const banner = document.createElement('div');
-            banner.className = "fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-xl z-50 text-sm font-semibold flex items-center space-x-2 animate-bounce";
-            banner.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> <span>Importado exitosamente</span>`;
-            document.body.appendChild(banner);
-            lucide.createIcons();
-            setTimeout(() => banner.remove(), 3000);
-          } else {
-            alert('El archivo JSON debe contener un array estructurado de registros.');
-          }
-        } catch (e) {
-          alert('Error al leer el archivo JSON: asegúrate de que el formato sea válido.');
+          const aiResponse = await callChatbotAPI(apiKey, msgText);
+          loaderDiv.remove();
+          appendMessage('CB', aiResponse);
+        } catch (err) {
+          loaderDiv.remove();
+          appendMessage('CB', `🚨 Error al consultar el bot: ${err.message}. Verifica tu API Key o conexión de red.`);
         }
       };
-      reader.readAsText(file);
+
+      chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const msg = chatInput.value.trim();
+        if (msg) handleUserChat(msg);
+      });
+
+      // Suggestion buttons click handler
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('chat-suggest')) {
+          const text = e.target.innerText.trim();
+          handleUserChat(text);
+        }
+      });
+
+      // Clear chat messages history
+      document.getElementById('chat-clear-btn').addEventListener('click', () => {
+        chatMessages.innerHTML = `
+          <div class="flex items-start space-x-2.5">
+            <div class="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold">CB</div>
+            <div class="space-y-1.5 max-w-[80%]">
+              <div class="p-3 bg-zinc-100 dark:bg-zinc-900 rounded-lg rounded-tl-none leading-relaxed text-zinc-800 dark:text-zinc-200">
+                Historial de chat limpiado. Hola, soy tu Oficial de Cumplimiento IA de Cooper Bros. ¿Qué duda de normativa o auditoría tienes hoy?
+              </div>
+              <div class="flex flex-wrap gap-1.5 mt-2">
+                <button class="chat-suggest bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-1 rounded text-[10px] transition-all">
+                  Resumen de casos críticos 🔴
+                </button>
+                <button class="chat-suggest bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-1 rounded text-[10px] transition-all">
+                  ¿Qué dice la normativa sobre filtraciones?
+                </button>
+                <button class="chat-suggest bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-1 rounded text-[10px] transition-all">
+                  ¿Hay casos de Santos Energia?
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Handles file upload and parses JSON, TXT, or Excel (via SheetJS)
+    function handleFileImport(file) {
+      if (!file) return;
+
+      const fileName = file.name;
+      
+      if (fileName.endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          try {
+            const importedData = JSON.parse(event.target.result);
+            if (Array.isArray(importedData)) {
+              console.log('✅ Base de datos importada exitosamente por el usuario.');
+              document.getElementById('cors-banner').classList.add('hidden');
+              renderDashboard(importedData);
+              showNotification('Base de datos importada con éxito', 'emerald');
+            } else {
+              alert('El archivo JSON debe contener un array estructurado de registros.');
+            }
+          } catch (e) {
+            alert('Error al leer el archivo JSON: asegúrate de que el formato sea válido.');
+          }
+        };
+        reader.readAsText(file);
+      } 
+      else if (fileName.endsWith('.txt')) {
+        // Raw email ingestion via browser
+        const apiKey = localStorage.getItem('gemini_api_key');
+        const apiKeyModal = document.getElementById('api-key-modal');
+        const apiKeyInner = apiKeyModal.querySelector('div');
+        if (!apiKey) {
+          apiKeyModal.classList.remove('hidden');
+          setTimeout(() => {
+            apiKeyInner.classList.remove('scale-95', 'opacity-0');
+            apiKeyInner.classList.add('scale-100', 'opacity-100');
+          }, 50);
+          alert('Por favor, configura tu API Key de Gemini en la llave de la cabecera para poder auditar correos en tiempo real.');
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+          const content = event.target.result;
+          try {
+            await processRawCaseClientSide(fileName, content, 'correo_electronico');
+          } catch (err) {
+            console.error(err);
+          }
+        };
+        reader.readAsText(file);
+      } 
+      else if (fileName.endsWith('.xlsx')) {
+        // Raw Excel ingestion via SheetJS browser
+        const apiKey = localStorage.getItem('gemini_api_key');
+        const apiKeyModal = document.getElementById('api-key-modal');
+        const apiKeyInner = apiKeyModal.querySelector('div');
+        if (!apiKey) {
+          apiKeyModal.classList.remove('hidden');
+          setTimeout(() => {
+            apiKeyInner.classList.remove('scale-95', 'opacity-0');
+            apiKeyInner.classList.add('scale-100', 'opacity-100');
+          }, 50);
+          alert('Por favor, configura tu API Key de Gemini en la llave de la cabecera para poder auditar planillas Excel en tiempo real.');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+          try {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            
+            if (workbook.SheetNames.length === 0) {
+              alert('El archivo de Excel no contiene ninguna hoja.');
+              return;
+            }
+
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+
+            if (rows.length === 0) {
+              alert('La planilla Excel no contiene filas de datos.');
+              return;
+            }
+
+            showIngestOverlay(`Ingiriendo Excel...`, `Se detectaron ${rows.length} filas. Auditando cada registro con Gemini de forma secuencial...`);
+
+            let processedCount = 0;
+            for (let i = 0; i < rows.length; i++) {
+              const row = rows[i];
+              const formattedRow = Object.entries(row)
+                .map(([column, value]) => {
+                  const cleanValue = value !== null && value !== undefined ? String(value).trim() : '';
+                  return `${column}: ${cleanValue}`;
+                })
+                .join(' | ');
+
+              try {
+                showIngestOverlay(`Ingiriendo Excel (${i + 1}/${rows.length})...`, `Procesando fila de: "${row.Cliente || 'Cliente'}..."`);
+                await processRawCaseClientSide(fileName, formattedRow, 'fila_excel', true);
+                processedCount++;
+              } catch (rowErr) {
+                console.error(`Fallo en fila ${i + 1}:`, rowErr);
+              }
+            }
+
+            hideIngestOverlay();
+            showNotification(`Excel completado: ${processedCount} filas unificadas y auditadas`, 'emerald');
+          } catch (e) {
+            hideIngestOverlay();
+            alert('Error al leer el archivo Excel: ' + e.message);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } 
+      else {
+        alert('Formato de archivo no soportado. Arrastra archivos .json (resultados), .txt (correos sucios) o .xlsx (planillas de Excel).');
+      }
     }
   </script>
 </body>
