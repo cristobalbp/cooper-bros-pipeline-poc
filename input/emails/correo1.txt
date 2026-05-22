@@ -1,0 +1,12 @@
+Subject: URGENT: Security Breach Notification / Account Compromise
+From: Arthur Pendelton <a.pendleton@apex-solutions.com>
+
+Hello Team,
+
+I am writing to formally report a major security issue. It has come to our attention that several corporate credentials belonging to our financial department have been leaked on a public GitHub repository yesterday. We noticed unauthorized access attempts from unknown IP addresses logged early this morning. 
+
+This is a severe breach of our data security agreement. Please freeze these accounts immediately and contact me ASAP to coordinate the incident response.
+
+Regards,
+Arthur Pendelton
+Apex Solutions Ltd.

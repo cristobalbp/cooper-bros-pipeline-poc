@@ -1,0 +1,21 @@
+{
+  "name": "cooper-bros-pipeline-poc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "ingest": "node ingest.js",
+    "process": "node process.js",
+    "serve": "npx -y serve public",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/genai": "^2.6.0",
+    "dotenv": "^17.4.2",
+    "xlsx": "^0.18.5"
+  }
+}
